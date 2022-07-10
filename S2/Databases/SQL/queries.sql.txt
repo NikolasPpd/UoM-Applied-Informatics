@@ -1,0 +1,173 @@
+-- 01. Τα album που περιέχουν στον τίτλο τους τη λέξη Best.
+--     [όλα τα στοιχεία των album]
+select *
+from album
+where Title like '%Best%' ;
+
+
+-- 02. Ποια album των Led Zeppelin καταχωρεί η βάση;
+--     [κωδικός_album, τίτλος]
+select AlbumId , Title
+from album 
+natural join artist
+where Name = 'Led Zeppelin' ;
+
+
+-- 03. Το πλήθος των κομματιών (track) για κάθε είδος (genre) σε φθίνουσα κατάταξη
+--     ως προς το πλήθος. [όνομα_είδους, πλήθος]
+select g.Name , count(t.Name)
+from genre g join track t on g.GenreId = t.GenreId 
+group by g.Name 
+order by count(t.Name) desc ;
+
+
+-- 04. Για κάθε υπάλληλο, το πλήθος των πελατών που εξυπηρετεί.
+--     Να εμφανίζονται και οι υπάλληλοι που δεν εξυπηρετούν κανέναν πελάτη. 
+--     [όνομα_υπαλλήλου, επώνυμο_υπαλλήλου, πλήθος]
+select e.FirstName , e.LastName , count(c.CustomerId)
+from employee e left join customer c on e.EmployeeId = c.SupportRepId 
+group by e.EmployeeId ;
+
+
+
+-- 05. Συνδυασμοί φορμά ( media_type) και είδους μουσικής που έχουν πάνω από 50 κομμάτια
+--     σε φθίνουσα κατάταξη ως προς το πλήθος. [όνομα_φορμά, όνομα_είδους, πλήθος]
+select m.Name as MediaType , g.Name as Genre , count(t.TrackId) as Plithos
+from track t join mediatype m on t.MediaTypeId = m.MediaTypeId 
+join genre g on t.GenreId = g.GenreId 
+group by m.Name , g.Name
+having Plithos > 50
+order by Plithos desc ;
+
+
+
+-- 06. Όλες οι παραγγελίες (invoice) που στάλθηκαν στη 'New York' και περιέχουν κομμάτια που ανήκουν σε
+--    παραπάνω από ένα είδος μουσικής [κωδικός_παραγγελίας, πλήθος προϊόντων, συνολικό ποσό1,
+--    συνολικό ποσό2]. Για επαλήθευση της ορθότητας των δεδομένων, υπολογίστε το συνολικό ποσό της
+--    κάθε παραγγελίας μέσω του unitprice*quantity και μέσω του total.
+select i.InvoiceId , count(g.Name) , i.UnitPrice*count(g.Name) , i2.Total 
+from invoiceline i 
+natural join invoice i2 
+natural join track t 
+join genre g on t.GenreId = g.GenreId 
+where i2.BillingCity = 'New York'
+group by i.InvoiceId 
+having count(distinct g.Name) > 1 ;
+
+
+
+-- 07. Οι πελάτες που έχουν αγοράσει track από όλα τα είδη μουσικής που αρχίζουν από S.
+--     [όλα τα στοιχεία των πελατών]
+select *
+from customer c 
+where not exists (
+   (select g.Name 
+	from genre g 
+	where Name like 'S%')
+	except
+   (select g.Name 
+	from invoiceline i 
+	natural join invoice i2 
+	natural join track t 
+	join genre g on t.GenreId = g.GenreId
+	where g.Name like 'S%' and i2.CustomerId = c.CustomerId)
+) ;
+
+
+
+-- 08. Εργαζόμενοι που έχουν μεγαλύτερη ηλικία από τον προϊστάμενό τους.
+--     [επώνυμο_υπαλλήλου, ημερομηνία_γέννησης_υπαλλήλου, επώνυμο_προϊσταμένου, 
+--     ημερομηνία_γέννησης_προϊσταμένου]
+select yp.LastName , yp.BirthDate , pro.LastName , pro.BirthDate 
+from employee yp , employee pro
+where yp.ReportsTo = pro.EmployeeId and yp.BirthDate <= pro.BirthDate ;
+
+
+
+-- 09. Ο πελάτης από τον Καναδά, με την πιο πρόσφατη παραγγελία
+--     [επώνυμο_πελάτη, ημερομηνία_παραγγελίας]
+select c.LastName , i.InvoiceDate 
+from invoice i natural join customer c
+where i.InvoiceDate in (select max(i.InvoiceDate)
+						from invoice i natural join customer c
+						where c.Country = 'Canada') ; 
+
+
+
+-- 10. Η playlist με τα περισσότερα κομμάτια
+--     [κωδικός_playlist, όνομα_playlist, πλήθος]
+select pl.PlaylistId , pl.Name , count(t.TrackId) TrackCount
+from track t natural join playlisttrack p join playlist pl on p.PlaylistId = pl.PlaylistId
+group by pl.PlaylistId
+having count(t.TrackId) = (select max(TrackCount)
+							from (	select pl.PlaylistId , pl.Name , count(t.TrackId) TrackCount
+									from track t natural join playlisttrack p join playlist pl on p.PlaylistId = pl.PlaylistId 
+									group by pl.PlaylistId ) as pinakas
+						   ) ;
+
+
+
+-- 11. Ποιες playlists έχουν tracks και είδους 'Rock' και 'Metal' [όλα τα στοιχεία της playlist]
+select pl.*
+from track t natural join playlisttrack p join playlist pl on p.PlaylistId = pl.PlaylistId join genre g on t.GenreId = g.GenreId 
+where g.Name in ('Rock', 'Metal')
+group by pl.PlaylistId 
+having count(distinct g.Name) = 2 ;
+
+
+
+-- 12. Τα κομμάτια είδους 'Jazz' που δεν έχουν πουληθεί [όνομα, συνθέτης, milliseconds, bytes, τιμή]
+select t.Name , t.Composer , t.Milliseconds , t.Bytes , t.UnitPrice 
+from track t join genre g on t.GenreId = g.GenreId 
+where g.Name = 'Jazz'
+except 
+select t.Name , t.Composer , t.Milliseconds , t.Bytes , t.UnitPrice 
+from invoiceline i natural join invoice i2 natural join track t join genre g on t.GenreId = g.GenreId 
+where g.Name = 'Jazz' ;
+
+
+
+-- 13. Οι πελάτες (σε ζεύγη) που έχουν αγοράσει πάνω από δύο κοινά track
+--     [ονοματεπώνυμο_πρώτου_πελάτη, ονοματεπώνυμο_δεύτερου_πελάτη]
+select p1.*
+from (	select concat(c1.FirstName, ' ', c1.LastName) as Customer1, concat(c2.FirstName, ' ', c2.LastName) as Customer2
+		from customer c1 natural join invoice i1 natural join invoiceline inv1 natural join track t1,
+			 customer c2 natural join invoice i2 natural join invoiceline inv2 natural join track t2
+		where t1.TrackId = t2.TrackId and c1.CustomerId <> c2.CustomerId 
+		group by c1.CustomerId, c2.CustomerId 
+		having count(*) > 2 ) as p1,
+	 (	select concat(c1.FirstName, ' ', c1.LastName) as Customer1, concat(c2.FirstName, ' ', c2.LastName) as Customer2
+		from customer c1 natural join invoice i1 natural join invoiceline inv1 natural join track t1,
+			 customer c2 natural join invoice i2 natural join invoiceline inv2 natural join track t2
+		where t1.TrackId = t2.TrackId and c1.CustomerId <> c2.CustomerId 
+		group by c1.CustomerId, c2.CustomerId 
+		having count(*) > 2 ) as p2
+where p1.Customer1 = p2.Customer2 and p1.Customer2 = p2.Customer1 and p1.Customer1 > p1.Customer2;
+
+
+-- 14. Για τα κομμάτια που το όνομα τους αρχίζει από 'C', τις playlists με όνομα που αρχίζει από 'С' 
+--     στις οποίες ανήκουν. 
+--     Να εμφανίζονται και τα κομμάτια που δεν ανήκουν σε καμία playlist. [όνομα_κομματιού, όνομα_playlist]
+select p1.* , p2.PlaylistName 
+from (	select distinct t.Name as TrackName
+		from track t
+		where t.Name like 'C%' ) p1
+left join (	select t.Name , pl.Name as PlaylistName
+		from track t left join playlisttrack p on t.TrackId = p.TrackId left join playlist pl on p.PlaylistId = pl.PlaylistId
+		where t.Name like 'C%' and pl.Name like 'C%' ) p2 
+on p1.TrackName = p2.Name ;
+
+
+-- 15. Τα τιμολόγια που έχουν μόνο κομμάτια που ανήκουν σε album που περιέχουν τη λέξη 'Greatest'
+--     στον τίτλο. [όλα τα στοιχεία των τιμολογίων]
+select *
+from invoice inv
+where not exists (
+   (select * 
+	from invoiceline i 
+	natural join invoice i2 
+	natural join track t 
+	natural join album a 
+	where a.Title not like '%Greatest%' and i2.InvoiceId = inv.InvoiceId )) ;
+
+

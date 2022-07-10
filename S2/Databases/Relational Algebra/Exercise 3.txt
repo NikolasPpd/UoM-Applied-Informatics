@@ -1,0 +1,39 @@
+Question 1:
+
+πssn (σname = 'tennis' ∧ Category.id = Specialization.categoryID (Category⨯Specialization)) ∩ πssn (σname = 'golf' ∧ Category.id = Specialization.categoryID (Category⨯Specialization))
+
+Question 2:
+
+πssn (σname = 'tennis' ∧ Category.id = Specialization.categoryID (Category⨯Specialization)) ∪ πssn (σname = 'ski' ∧ Category.id = Specialization.categoryID (Category⨯Specialization))
+
+Question 3:
+
+πtype (σname = 'snowboard' ∧ Category.id = Specialization.categoryID ∧ Salesperson.ssn = Specialization.ssn (Category⨯Specialization⨯Salesperson))
+
+Question 4:
+
+πname,season (σ Specialization.categoryID = Category.id (Specialization⨯Category)) - πname,season (σ last_spec_date<date('2014-01-01') ∧ Specialization.categoryID = Category.id (Specialization⨯Category))
+
+Question 5:
+
+π S1.firstname,S1.lastname (σ S2.firstname='Bradley' ∧ S2.lastname='Salinas' ∧ S1.boss=S2.ssn (ρ S1 Salesperson ⨯ ρ S2 Salesperson))
+
+Question 6:
+
+πtype,firstname,lastname (σtype≠'trainee' ∧ (firstname LIKE 'G%' ∨ lastname LIKE 'M%') (Salesperson))
+
+Question 7:
+
+π T1.ssn,T1.firstname,T1.lastname (σ T2.ssn='9771-50397' ∧ T1.ssn≠'9771-50397' ∧ T1.categoryID=T2.categoryID (ρ T1 (Salesperson⨝Specialization)⨯(ρ T2 (Salesperson⨝Specialization))))
+
+Question 8:
+
+π firstname,lastname (σ spCount≥3 (γ firstname,lastname; count(Specialization.categoryID)->spCount (Specialization⨝Salesperson)))
+
+Question 9:
+
+π ssn,categoryID,last_spec_date (Specialization) - π S1.ssn,S1.categoryID,S1.last_spec_date ( σ S1.last_spec_date>S2.last_spec_date (ρ S1 Specialization ⨯ ρ S2 Specialization))
+
+Question 10:
+
+π categoryID (σ type='trainee' (Salesperson⨝Specialization)) ∩ π categoryID (σ type='foreman' (Salesperson⨝Specialization)) ∩ π categoryID (σ type='assistant' (Salesperson⨝Specialization))
